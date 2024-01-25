@@ -44,6 +44,7 @@ jobs:
 
   build-and-push:
     executor: gcp-gcr/default
+    circleci_ip_ranges: true
     parameters:
       gcloud-service-key:
         type: env_var_name
