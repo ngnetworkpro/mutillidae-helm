@@ -5,7 +5,7 @@ orbs:
   gcp-gcr: circleci/gcp-gcr@0.16
   shellcheck: circleci/shellcheck@3.2.0 # https://circleci.com/developer/orbs/orb/circleci/shellcheck
   gcp-cli: circleci/gcp-cli@3.1
-  helm: circleci/helm@3.0
+  helm: circleci/helm@2.0
 
 global_context: &global_context
   context:
@@ -18,34 +18,6 @@ parameters:
   gke-cluster:
     type: string
     default: "ng-autopilot-cluster-1"
-  enable_publish: 
-    description: |
-      Include the Publish conditions.  Useful when publishing on specific branches.
-    type: boolean
-    default: true
-  enable_oci: 
-    description: |
-      Utilize OCI Docker Registry via GAR set to true.
-    type: boolean
-    default: true
-  chart-version: 
-    description: |
-      specify the exact chart version to use. If this is not specified, the version is created based CIRCLE_BUILD_NUM
-    type: string
-    default: "1.0.0"
-  chart-dir:
-    description: |
-      Specify a chart reference (default current working dir)
-      or a path to an unpacked chart directory (e.g. ./nginx)
-    type: string
-    default: "."
-  chart-repo:
-    description: |
-      The url for the helm chart repository used as part of helm repo publish
-      command.  Current support for OCI Docker Registry in GAR requires enable_oci=True
-    type: string
-    default: "us-east4-docker.pkg.dev/vpc-dev-31480/lab"
-
 
 jobs:
   shellcheck:
@@ -83,8 +55,40 @@ jobs:
         description: >
           Environment variable name for the Google project ID to connect with
           via the gcloud CLI
+      enable_publish: 
+        description: |
+          Include the Publish conditions.  Useful when publishing on specific branches.
+        type: boolean
+        default: true
+      enable_oci: 
+        description: |
+          Utilize OCI Docker Registry via GAR set to true.
+        type: boolean
+        default: true
+      chart-version: 
+        description: |
+          specify the exact chart version to use. If this is not specified, the version is created based CIRCLE_BUILD_NUM
+        type: string
+        default: "1.0.0"
+      chart-dir:
+        description: |
+          Specify a chart reference (default current working dir)
+          or a path to an unpacked chart directory (e.g. ./nginx)
+        type: string
+        default: "."
+      chart-repo:
+        description: |
+          The url for the helm chart repository used as part of helm repo publish
+          command.  Current support for OCI Docker Registry in GAR requires enable_oci=True
+        type: string
+        default: "us-east4-docker.pkg.dev/vpc-dev-31480/lab"
     steps:
       - checkout
+      - helm/install-helm-client
+      - run:
+          name: Setup 
+          command: | 
+            echo "start setup"
       - gcp-cli/setup:
           gcloud_service_key: GCLOUD_SERVICE_KEY
           google_project_id: GOOGLE_PROJECT_ID
@@ -93,16 +97,16 @@ jobs:
       # - gcp-cli/install:
       #     components: "kubectl gke-gcloud-auth-plugin docker-credential-gcr"
       - when:
-          condition: <<pipeline.parameters.chart-version>>
+          condition: <<parameters.chart-version>>
           steps:
             - run:
                 name: Setup Environment Variables
                 environment:
-                  CHART_VERSION: <<pipeline.parameters.chart-version>>
+                  CHART_VERSION: <<parameters.chart-version>>
                 command: |
                   echo "export CHART_VERSION=$(eval echo ${CHART_VERSION})" >> "$BASH_ENV"
       - unless:
-          condition: <<pipeline.parameters.chart-version>>
+          condition: <<parameters.chart-version>>
           steps:
             - run:
                 name: Setup Environment Variables
@@ -111,11 +115,11 @@ jobs:
       - run:
           name: Helm Lint
           command: |
-            helm lint  <<pipeline.parameters.chart-dir>>
+            helm lint  <<parameters.chart-dir>>
       - run:
           name: Helm Package
           command: |
-            helm package --version=${CHART_VERSION} <<pipeline.parameters.chart-dir>>
+            helm package --version=${CHART_VERSION} <<parameters.chart-dir>>
       - run:
           name: Store Artifact
           command: |
@@ -126,24 +130,24 @@ jobs:
       - when:
           condition:
             and:
-              - <<pipeline.parameters.enable_publish>>
-              - <<pipeline.parameters.enable_oci>>
+              - <<parameters.enable_publish>>
+              - <<parameters.enable_oci>>
           steps:
             - run:
                 name: Helm Push
-                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz oci://<<pipeline.parameters.chart-repo>>"
+                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz oci://<<parameters.chart-repo>>"
             - run:
                 name: Check Package
-                command: "gcloud artifacts docker images list <<pipeline.parameters.chart-repo>> --include-tags | grep ${CHART_VERSION} || exit 1"
+                command: "gcloud artifacts docker images list <<parameters.chart-repo>> --include-tags | grep ${CHART_VERSION} || exit 1"
       - when:
           condition:
             and:
-              - <<pipeline.parameters.enable_publish>>
-              - equal: [false, << pipeline.parameters.enable_oci >>]
+              - <<parameters.enable_publish>>
+              - equal: [false, << parameters.enable_oci >>]
           steps:
             - run:
                 name: Helm Push
-                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz <<pipeline.parameters.chart-repo>>"
+                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz <<parameters.chart-repo>>"
       
   deploy:
     parameters:
@@ -275,9 +279,10 @@ jobs:
         default: GKE_CLUSTER
         description: >
           The Google Kubernetes Engine cluster name
-    executor: gcp-gcr/default
+    executor: gcp-cli/default
     steps:
       - checkout
+      - helm/install-helm-client
       - gcp-cli/setup:
           gcloud_service_key: GCLOUD_SERVICE_KEY
           google_project_id: GOOGLE_PROJECT_ID
