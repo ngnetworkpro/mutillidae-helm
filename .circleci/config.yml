@@ -89,6 +89,9 @@ jobs:
           name: Setup 
           command: | 
             echo "start setup"
+      - run: 
+          name: gcloud
+          command: command: bash scripts/kubectl.sh
       - gcp-cli/setup:
           gcloud_service_key: GCLOUD_SERVICE_KEY
           google_project_id: GOOGLE_PROJECT_ID
