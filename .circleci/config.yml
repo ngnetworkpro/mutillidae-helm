@@ -7,6 +7,10 @@ orbs:
   gcp-cli: circleci/gcp-cli@3.1
   helm: circleci/helm@3.0
 
+global_context: &global_context
+  context:
+    - ngnetwork_pro
+
 parameters:
   registry-url:
     type: string
