@@ -46,6 +46,7 @@ parameters:
     type: string
     default: "us-east4-docker.pkg.dev/vpc-dev-31480/lab"
 
+
 jobs:
   shellcheck:
     executor: gcp-gcr/default
@@ -71,8 +72,22 @@ jobs:
 
   build-and-push:
     executor: gcp-gcr/default
+    parameters:
+      gcloud-service-key:
+        type: env_var_name
+        default: GCLOUD_SERVICE_KEY
+        description: The gcloud service key
+      google-project-id:
+        type: env_var_name
+        default: GOOGLE_PROJECT_ID
+        description: >
+          Environment variable name for the Google project ID to connect with
+          via the gcloud CLI
     steps:
       - checkout
+      - gcp-cli/setup:
+          gcloud_service_key: GCLOUD_SERVICE_KEY
+          google_project_id: GOOGLE_PROJECT_ID
       - gcp-gcr/gcr-auth:
           registry-url: << pipeline.parameters.registry-url >>
       - gcp-cli/install:
@@ -240,8 +255,38 @@ jobs:
           The --wait flag will be set automatically if --atomic is used
         type: boolean
         default: false
+      #
+      gcloud-service-key:
+        type: env_var_name
+        default: GCLOUD_SERVICE_KEY
+        description: The gcloud service key
+      google-project-id:
+        type: env_var_name
+        default: GOOGLE_PROJECT_ID
+        description: >
+          Environment variable name for the Google project ID to connect with
+          via the gcloud CLI
+      google-compute-zone:
+        type: env_var_name
+        default: GOOGLE_COMPUTE_ZONE
+        description: >
+          The Google compute zone to connect with via the gcloud CLI
+      google-compute-region:
+        type: env_var_name
+        default: GOOGLE_COMPUTE_REGION
+        description: >
+          The Google compute region to connect with via the gcloud CLI
+      gke-cluster:
+        type: env_var_name
+        default: GKE_CLUSTER
+        description: >
+          The Google Kubernetes Engine cluster name
     executor: gcp-gcr/default
     steps:
+      - checkout
+      - gcp-cli/setup:
+          gcloud_service_key: GCLOUD_SERVICE_KEY
+          google_project_id: GOOGLE_PROJECT_ID
       - run:
           name: Upgrade, update, or install chart
           environment:
