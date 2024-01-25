@@ -90,14 +90,8 @@ jobs:
           google_project_id: GOOGLE_PROJECT_ID
       - gcp-gcr/gcr-auth:
           registry-url: << pipeline.parameters.registry-url >>
-      - gcp-cli/install:
-          components: "kubectl gke-gcloud-auth-plugin docker-credential-gcr"
-      - run:
-          name: Configure Kubectl and Helm
-          environment:
-            ORB_ENV_GKE_CLUSTER: << pipeline.parameters.gke-cluster >>
-            ORB_VAL_REGISTRY_URL: << pipeline.parameters.registry-url >>
-          command: bash scripts/kubectl.sh
+      # - gcp-cli/install:
+      #     components: "kubectl gke-gcloud-auth-plugin docker-credential-gcr"
       - when:
           condition: <<pipeline.parameters.chart-version>>
           steps:
