@@ -190,7 +190,7 @@ jobs:
         description: |
           Specify a name for the release.
         type: string
-        default: ""
+        default: "initial"
       namespace:
         description: |
           The kubernetes namespace that should be used.
