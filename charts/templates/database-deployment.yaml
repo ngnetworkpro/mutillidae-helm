@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  namespace: mutillidae
+  labels:
+    k8s-app: mutillidae-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: mutillidae-database
+  template:
+    metadata:
+      labels:
+        k8s-app: mutillidae-database
+    spec:
+      containers:
+      - name: mutillidae-database
+        image: webpwnized/mutillidae:database
+        ports:
+        - name: mysql
+          containerPort: 3306

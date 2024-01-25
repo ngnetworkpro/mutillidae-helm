@@ -1,0 +1,11 @@
+apiVersion: v1
+name: mutillidae
+version: 1.0.0
+appVersion: v1.0.0
+description: OWASP Mutillidae - https://github.com/webpwnized/mutillidae
+home: https://github.com/ngnetworkpro/mutillidae-helm
+icon: https://raw.githubusercontent.com/netbox-community/netbox/develop/docs/netbox_logo.png
+maintainers:
+- name: Sybil Melton
+  email: sybil.melton@droneup.com
+  url: https://github.com/ngnetworkpro/

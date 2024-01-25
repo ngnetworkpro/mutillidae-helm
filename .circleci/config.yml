@@ -1,0 +1,71 @@
+orbs:
+  gcp-gke: circleci/gcp-gke@2.1.0
+  gcp-gcr: circleci/gcp-gcr@0.15
+  shellcheck: circleci/shellcheck@3.1.2 # https://circleci.com/developer/orbs/orb/circleci/shellcheck
+  gcp-cli: circleci/gcp-cli@3.1.0
+
+parameters:
+  registry-url:
+    type: string
+    default: "us-east1-docker.pkg.dev"
+  gke-cluster:
+    type: string
+    default: "ng-autopilot-cluster-1"
+
+jobs:
+  shellcheck:
+    executor: gcp-gcr/default
+    steps:
+      - checkout
+      - shellcheck/install
+      - shellcheck/check:
+          dir: ./
+          ignore-dirs: |
+            ./.git
+            
+  test:
+    executor: gcp-gcr/default
+    steps:
+      - checkout
+      - run:
+          command: |
+            #!/bin/bash
+
+            echo "You are expected to implement the proper tests for you repositories."
+
+
+
+  build-and-push:
+    executor: gcp-gcr/default
+    steps:
+      - checkout
+      - gcp-gcr/gcr-auth:
+          registry-url: << pipeline.parameters.registry-url >>
+      - gcp-cli/install:
+          components: "kubectl gke-gcloud-auth-plugin docker-credential-gcr"
+      - helm/install-helm-client:
+
+      - run:
+          name: Configure Kubectl and Helm
+          environment:
+            ORB_ENV_GKE_CLUSTER: << pipeline.parameters.gke-cluster >>
+            ORB_VAL_REGISTRY_URL: << pipeline.parameters.registry-url >>
+          command: <<include(scripts/gcloud-kubectl.sh)>>
+    
+  deploy:
+
+
+
+
+workflows:
+  test-build-deploy:
+    jobs:
+      - shellcheck
+      - test
+      - build-and-push:
+          requires:
+            - shellcheck
+            - test
+      - deploy:
+          requires:
+            - build-and-push

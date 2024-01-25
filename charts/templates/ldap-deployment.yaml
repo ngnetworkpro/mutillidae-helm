@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ldap
+  namespace: mutillidae
+  labels:
+    k8s-app: mutillidae-ldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: mutillidae-ldap
+  template:
+    metadata:
+      labels:
+        k8s-app: mutillidae-ldap
+    spec:
+      containers:
+      - name: mutillidae-ldap
+        image: webpwnized/mutillidae:ldap
+        ports:
+        - name: ldap
+          containerPort: 389

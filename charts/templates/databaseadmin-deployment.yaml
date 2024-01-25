@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: databaseadmin
+  namespace: mutillidae
+  labels:
+    k8s-app: mutillidae-database-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: mutillidae-database-admin
+  template:
+    metadata:
+      labels:
+        k8s-app: mutillidae-database-admin
+    spec:
+      containers:
+      - name: mutillidae-database-admin
+        image: webpwnized/mutillidae:database_admin
+        ports:
+        - name: http
+          containerPort: 80

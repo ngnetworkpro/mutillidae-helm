@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: www
+  namespace: mutillidae
+  labels:
+    k8s-app: mutillidae-www
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: mutillidae-www
+  template:
+    metadata:
+      labels:
+        k8s-app: mutillidae-www
+    spec:
+      containers:
+      - name: mutillidae-www
+        image: webpwnized/mutillidae:www
+        ports:
+        - name: http
+          containerPort: 80
