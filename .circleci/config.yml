@@ -343,9 +343,11 @@ workflows:
       - shellcheck
       - test
       - build-and-push:
+          context: ngnetwork_pro
           requires:
             - shellcheck
             - test
       - deploy:
+          context: ngnetwork_pro
           requires:
             - build-and-push
