@@ -185,12 +185,12 @@ jobs:
           The url for the helm chart repository used as part of helm repo add
           command
         type: string
-        default: "oci://us-east1-docker.pkg.dev/vpc-dev-31480/lab/mutillidae"
+        default: "oci://us-east1-docker.pkg.dev/vpc-dev-31480/lab"
       release-name:
         description: |
           Specify a name for the release.
         type: string
-        default: "initial"
+        default: "1.0.0"
       namespace:
         description: |
           The kubernetes namespace that should be used.
