@@ -5,6 +5,7 @@ orbs:
   gcp-gcr: circleci/gcp-gcr@0.15
   shellcheck: circleci/shellcheck@3.1.2 # https://circleci.com/developer/orbs/orb/circleci/shellcheck
   gcp-cli: circleci/gcp-cli@3.1.0
+  helm: circleci/helm@2.0
 
 parameters:
   registry-url:
@@ -13,6 +14,33 @@ parameters:
   gke-cluster:
     type: string
     default: "ng-autopilot-cluster-1"
+  enable_publish: 
+    description: |
+      Include the Publish conditions.  Useful when publishing on specific branches.
+    type: boolean
+    default: true
+  enable_oci: 
+    description: |
+      Utilize OCI Docker Registry via GAR set to true.
+    type: boolean
+    default: true
+  chart-version: 
+    description: |
+      specify the exact chart version to use. If this is not specified, the version is created based CIRCLE_BUILD_NUM
+    type: string
+    default: "1.0.0"
+  chart-dir:
+    description: |
+      Specify a chart reference (default current working dir)
+      or a path to an unpacked chart directory (e.g. ./nginx)
+    type: string
+    default: "."
+  chart-repo:
+    description: |
+      The url for the helm chart repository used as part of helm repo publish
+      command.  Current support for OCI Docker Registry in GAR requires enable_oci=True
+    type: string
+    default: "us-east4-docker.pkg.dev/vpc-dev-31480/lab"
 
 jobs:
   shellcheck:
@@ -45,17 +73,192 @@ jobs:
           registry-url: << pipeline.parameters.registry-url >>
       - gcp-cli/install:
           components: "kubectl gke-gcloud-auth-plugin docker-credential-gcr"
-      - helm/install-helm-client:
-
       - run:
           name: Configure Kubectl and Helm
           environment:
             ORB_ENV_GKE_CLUSTER: << pipeline.parameters.gke-cluster >>
             ORB_VAL_REGISTRY_URL: << pipeline.parameters.registry-url >>
-          command: <<include(scripts/gcloud-kubectl.sh)>>
-    
+          command: <<include(scripts/kubectl.sh)>>
+      - when:
+          condition: <<pipeline.parameters.chart-version>>
+          steps:
+            - run:
+                name: Setup Environment Variables
+                environment:
+                  CHART_VERSION: <<pipeline.parameters.chart-version>>
+                command: |
+                  echo "export CHART_VERSION=$(eval echo ${CHART_VERSION})" >> "$BASH_ENV"
+      - unless:
+          condition: <<pipeline.parameters.chart-version>>
+          steps:
+            - run:
+                name: Setup Environment Variables
+                command: |
+                  echo 'export CHART_VERSION="1.0.${CIRCLE_BUILD_NUM}"' >> "$BASH_ENV"
+      - run:
+          name: Helm Lint
+          command: |
+            helm lint  <<pipeline.parameters.chart-dir>>
+      - run:
+          name: Helm Package
+          command: |
+            helm package --version=${CHART_VERSION} <<pipeline.parameters.chart-dir>>
+      - run:
+          name: Store Artifact
+          command: |
+            mkdir -p /tmp/helm-chart
+            cp -v *-${CHART_VERSION}.tgz  /tmp/helm-chart
+      - store_artifacts:
+          path: /tmp/helm-chart
+      - when:
+          condition:
+            and:
+              - <<pipeline.parameters.enable_publish>>
+              - <<pipeline.parameters.enable_oci>>
+          steps:
+            - run:
+                name: Helm Push
+                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz oci://<<pipeline.parameters.chart-repo>>"
+            - run:
+                name: Check Package
+                command: "gcloud artifacts docker images list <<pipeline.parameters.chart-repo>> --include-tags | grep ${CHART_VERSION} || exit 1"
+      - when:
+          condition:
+            and:
+              - <<pipeline.parameters.enable_publish>>
+              - equal: [false, << pipeline.parameters.enable_oci >>]
+          steps:
+            - run:
+                name: Helm Push
+                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz <<pipeline.parameters.chart-repo>>"
+      
   deploy:
-
+    parameters:
+      chart:
+        description: |
+          Specify for upgrade a chart reference (e.g. stable/mariadb),
+          or a path to a packaged chart (e.g. ./nginx-1.2.3.tgz),
+          or a path to an unpacked chart directory (e.g. ./nginx)
+          or an absolute URL (e.g. https://example.com/charts/nginx-1.2.3.tgz)
+        type: string
+        default: "mutillidae"
+      add-repo:
+        description: |
+          The url for the helm chart repository used as part of helm repo add
+          command
+        type: string
+        default: "oci://us-east4-docker.pkg.dev/vpc-dev-31480/lab/mutillidae"
+      release-name:
+        description: |
+          Specify a name for the release.
+        type: string
+        default: ""
+      namespace:
+        description: |
+          The kubernetes namespace that should be used.
+        type: string
+        default: "mutillidae"
+      wait:
+        description: |
+          Whether to wait for the installation to be complete.
+        type: boolean
+        default: true
+      timeout:
+        description: |
+          If timeout is reached, the release will be marked as FAILED.
+        type: string
+        default: ""
+      no-hooks:
+        description: |
+          This skips running hooks for the command
+        type: boolean
+        default: false
+      devel:
+        description: |
+          Use development versions, too. Equivalent to version '>0.0.0-0'. If --version is set, this is ignored.
+        type: string
+        default: ""
+      dry-run:
+        description: |
+          simulate an upgrade
+        type: boolean
+        default: false
+      force:
+        description: |
+          Use development versions, too. Equivalent to version '>0.0.0-0'. If --version is set, this is ignored.
+        type: boolean
+        default: false
+      reset-values:
+        description: |
+          when upgrading, reset the values to the ones built into the chart
+        type: boolean
+        default: false
+      reuse-values:
+        description: |
+          when upgrading, reuse the last release's values and merge in any overrides from the command line via --set and -f. If '--reset-values' is specified, this is ignored.
+        type: boolean
+        default: false
+      values:
+        description: |
+          specify values in a YAML file or a URL
+        type: string
+        default: ""
+      version:
+        description: |
+          specify the exact chart version to use. If this is not specified, the latest version is used
+        type: string
+        default: ""
+      recreate-pods:
+        description: |
+          performs pods restart for the resource if applicable
+        type: boolean
+        default: false
+      values-to-override:
+        description: |
+          Override values in a chart using the --set flag of the helm upgrade
+          command. Format: key1=val1,key2=val2
+        type: string
+        default: ""
+      update-repositories:
+        description: |
+          Choose to update repositories by running helm repo update.
+        type: boolean
+        default: true
+      no-output-timeout:
+        description: |
+          Elapsed time that the helm command can run on CircleCI without output.
+          The string is a decimal with unit suffix, such as “20m”, “1.25h”, “5s”
+        type: string
+        default: "30m"
+      atomic:
+        description: |
+          if set, upgrade process rolls back changes made in case of failed upgrade.
+          The --wait flag will be set automatically if --atomic is used
+        type: boolean
+        default: false
+    executor: gcp-gcr/default
+      steps:
+          - run:
+              name: Upgrade, update, or install chart
+              environment:
+                TIMEOUT: << parameters.timeout >>
+                ATOMIC: << parameters.atomic >>
+                ORB_PARAM_WAIT: << parameters.wait >>
+                NO_HOOKS: << parameters.no-hooks >>
+                RECREATE_PODS: << parameters.recreate-pods >>
+                ORB_PARAM_NAMESPACE: << parameters.namespace >>
+                DEVEL: << parameters.devel >>
+                DRY_RUN: << parameters.dry-run >>
+                RESET_VALUES: << parameters.reset-values >>
+                REUSE_VALUES: << parameters.reuse-values >>
+                VALUES: << parameters.values >>
+                VERSION: << parameters.version >>
+                VALUES_TO_OVERRIDE: << parameters.values-to-override >>
+                ORB_PARAM_CHART: << parameters.chart >>
+                ORB_PARAM_RELEASE_NAME: << parameters.release-name >>
+                ORB_PARAM_REPO: << parameters.add-repo >>
+            command: <<include(scripts/helm-chart.sh)>>
+            no_output_timeout: << parameters.no-output-timeout >>
 
 
 
