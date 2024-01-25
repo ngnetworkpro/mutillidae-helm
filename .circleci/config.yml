@@ -307,6 +307,7 @@ jobs:
           google_project_id: <<parameters.google-project-id>>
           google_compute_region: <<parameters.google-compute-region>>
           gcloud_service_key: <<parameters.gcloud-service-key>>
+          components: "kubectl gke-gcloud-auth-plugin docker-credential-gcr"
       - helm/install-helm-client
       - run: 
           name: Configure Kubectl and Helm
