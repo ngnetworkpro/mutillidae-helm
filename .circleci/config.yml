@@ -117,12 +117,6 @@ jobs:
           version: << parameters.helm-version >>
       - gcp-gcr/gcr-auth:
           registry-url: << pipeline.parameters.registry-url >>
-      - run: 
-          name: Configure Kubectl and Helm
-          environment:
-            ORB_ENV_GKE_CLUSTER: <<parameters.gke-cluster>>
-            ORB_VAL_REGISTRY_URL: << pipeline.parameters.registry-url >>
-          command: bash scripts/kubectl.sh
       - when:
           condition: <<parameters.chart-version>>
           steps:
@@ -309,10 +303,17 @@ jobs:
     executor: gcp-cli/default
     steps:
       - checkout
-      - helm/install-helm-client
       - gcp-cli/setup:
-          gcloud_service_key: GCLOUD_SERVICE_KEY
-          google_project_id: GOOGLE_PROJECT_ID
+          google_project_id: <<parameters.google-project-id>>
+          google_compute_region: <<parameters.google-compute-region>>
+          gcloud_service_key: <<parameters.gcloud-service-key>>
+      - helm/install-helm-client
+      - run: 
+          name: Configure Kubectl and Helm
+          environment:
+            ORB_ENV_GKE_CLUSTER: <<parameters.gke-cluster>>
+            ORB_VAL_REGISTRY_URL: << pipeline.parameters.registry-url >>
+          command: bash scripts/kubectl.sh
       - run:
           name: Upgrade, update, or install chart
           environment:
