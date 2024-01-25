@@ -1,3 +1,5 @@
+version: 1.0 
+
 orbs:
   gcp-gke: circleci/gcp-gke@2.1.0
   gcp-gcr: circleci/gcp-gcr@0.15
