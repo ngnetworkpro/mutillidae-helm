@@ -106,7 +106,7 @@ jobs:
       - run:
           name: Setup 
           command: | 
-            echo "start setup"
+            echo $GCLOUD_SERVICE_KEY $GOOGLE_PROJECT_ID
       - gcp-cli/setup:
           google_project_id: <<parameters.google-project-id>>
           google_compute_zone: <<parameters.google-compute-zone>>
