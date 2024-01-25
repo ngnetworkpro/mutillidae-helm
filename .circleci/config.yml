@@ -96,7 +96,7 @@ jobs:
           The url for the helm chart repository used as part of helm repo publish
           command.  Current support for OCI Docker Registry in GAR requires enable_oci=True
         type: string
-        default: "us-east4-docker.pkg.dev/vpc-dev-31480/lab"
+        default: "us-east1-docker.pkg.dev/vpc-dev-31480/lab"
       helm-version:
         type: string
         default: "v3.11.1"
@@ -191,7 +191,7 @@ jobs:
           The url for the helm chart repository used as part of helm repo add
           command
         type: string
-        default: "oci://us-east4-docker.pkg.dev/vpc-dev-31480/lab/mutillidae"
+        default: "oci://us-east1-docker.pkg.dev/vpc-dev-31480/lab/mutillidae"
       release-name:
         description: |
           Specify a name for the release.
