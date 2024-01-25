@@ -90,7 +90,7 @@ jobs:
           Specify a chart reference (default current working dir)
           or a path to an unpacked chart directory (e.g. ./nginx)
         type: string
-        default: "."
+        default: "charts"
       chart-repo:
         description: |
           The url for the helm chart repository used as part of helm repo publish
