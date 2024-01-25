@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  gcp-gke: circleci/gcp-gke@2.2
   gcp-gcr: circleci/gcp-gcr@0.16
   shellcheck: circleci/shellcheck@3.2.0 # https://circleci.com/developer/orbs/orb/circleci/shellcheck
   gcp-cli: circleci/gcp-cli@3.1
@@ -96,7 +95,7 @@ jobs:
           The url for the helm chart repository used as part of helm repo publish
           command.  Current support for OCI Docker Registry in GAR requires enable_oci=True
         type: string
-        default: "us-east1-docker.pkg.dev/vpc-dev-31480/lab"
+        default: "lab"
       helm-version:
         type: string
         default: "v3.11.1"
@@ -156,10 +155,10 @@ jobs:
           steps:
             - run:
                 name: Helm Push
-                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz oci://<<parameters.chart-repo>>"
+                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz oci://<< pipeline.parameters.registry-url >>/<<parameters.google-project-id>>/<<parameters.chart-repo>>"
             - run:
                 name: Check Package
-                command: "gcloud artifacts docker images list <<parameters.chart-repo>> --include-tags | grep ${CHART_VERSION} || exit 1"
+                command: "gcloud artifacts docker images list <<pipeline.parameters.registry-url>>/<<parameters.google-project-id>>/<<parameters.chart-repo>> --include-tags | grep ${CHART_VERSION} || exit 1"
       - when:
           condition:
             and:
@@ -168,7 +167,7 @@ jobs:
           steps:
             - run:
                 name: Helm Push
-                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz <<parameters.chart-repo>>"
+                command: "helm push /tmp/helm-chart/*-${CHART_VERSION}.tgz <<pipeline.parameters.registry-url>>/<<parameters.google-project-id>>/<<parameters.chart-repo>>"
       
   deploy:
     parameters:
@@ -180,12 +179,12 @@ jobs:
           or an absolute URL (e.g. https://example.com/charts/nginx-1.2.3.tgz)
         type: string
         default: "mutillidae"
-      add-repo:
+      chart-repo:
         description: |
           The url for the helm chart repository used as part of helm repo add
           command
         type: string
-        default: "oci://us-east1-docker.pkg.dev/vpc-dev-31480/lab"
+        default: "lab"
       release-name:
         description: |
           Specify a name for the release.
@@ -333,7 +332,7 @@ jobs:
             VALUES_TO_OVERRIDE: << parameters.values-to-override >>
             ORB_PARAM_CHART: << parameters.chart >>
             ORB_PARAM_RELEASE_NAME: << parameters.release-name >>
-            ORB_PARAM_REPO: << parameters.add-repo >>
+            ORB_PARAM_REPO: << pipeline.parameters.registry-url >>/<<parameters.google-project-id>>/<<parameters.chart-repo>>
           command: bash scripts/helm-chart.sh
           no_output_timeout: << parameters.no-output-timeout >>
 
