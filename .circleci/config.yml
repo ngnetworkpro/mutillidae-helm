@@ -44,7 +44,6 @@ jobs:
 
   build-and-push:
     executor: gcp-gcr/default
-    circleci_ip_ranges: true
     parameters:
       gcloud-service-key:
         type: env_var_name
@@ -107,7 +106,7 @@ jobs:
       - run:
           name: Setup 
           command: | 
-            echo $GCLOUD_SERVICE_KEY $GOOGLE_PROJECT_ID
+            echo $GOOGLE_PROJECT_ID
       - gcp-cli/setup:
           google_project_id: <<parameters.google-project-id>>
           google_compute_zone: <<parameters.google-compute-zone>>

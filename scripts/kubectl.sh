@@ -30,7 +30,7 @@ case "${err_code}" in
     exit 1
     ;;
   3)
-    echo "Failed to connect to Kubernetes API. Check job is running within authorized network. circleci_ip_ranges: true"
+    echo "Failed to connect to Kubernetes API."
     exit 1
     ;;
   4)
