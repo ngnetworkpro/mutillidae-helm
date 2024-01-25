@@ -1,11 +1,11 @@
 version: 2.1
 
 orbs:
-  gcp-gke: circleci/gcp-gke@2.1.0
-  gcp-gcr: circleci/gcp-gcr@0.15
-  shellcheck: circleci/shellcheck@3.1.2 # https://circleci.com/developer/orbs/orb/circleci/shellcheck
-  gcp-cli: circleci/gcp-cli@3.1.0
-  helm: circleci/helm@2.0
+  gcp-gke: circleci/gcp-gke@2.2
+  gcp-gcr: circleci/gcp-gcr@0.16
+  shellcheck: circleci/shellcheck@3.2.0 # https://circleci.com/developer/orbs/orb/circleci/shellcheck
+  gcp-cli: circleci/gcp-cli@3.1
+  helm: circleci/helm@3.0
 
 parameters:
   registry-url:
@@ -78,7 +78,7 @@ jobs:
           environment:
             ORB_ENV_GKE_CLUSTER: << pipeline.parameters.gke-cluster >>
             ORB_VAL_REGISTRY_URL: << pipeline.parameters.registry-url >>
-          command: <<include(scripts/kubectl.sh)>>
+          command: bash scripts/kubectl.sh
       - when:
           condition: <<pipeline.parameters.chart-version>>
           steps:
@@ -257,7 +257,7 @@ jobs:
             ORB_PARAM_CHART: << parameters.chart >>
             ORB_PARAM_RELEASE_NAME: << parameters.release-name >>
             ORB_PARAM_REPO: << parameters.add-repo >>
-          command: <<include(scripts/helm-chart.sh)>>
+          command: bash scripts/helm-chart.sh
           no_output_timeout: << parameters.no-output-timeout >>
 
 
